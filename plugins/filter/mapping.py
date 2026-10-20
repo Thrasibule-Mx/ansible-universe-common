@@ -65,10 +65,51 @@ def get(_input: Mapping, *key: ty.Hashable, default: ty.Any = None) -> ty.Any:
     return default
 
 
+def walk(
+    _input: Mapping, keys: ty.Iterable[ty.Hashable], default: ty.Any = None
+) -> ty.Any:
+    """Traverse an object using the provided sequence of keys and return
+    the item mapped by the last key if found, else *default*.
+
+    If an intermediate key along the path is missing, an error is raised.
+    If no default is provided and the last key is not found, ``None`` is
+    returned.
+
+
+    :param _input: The root object or mapping to traverse.
+    :type _input: ~collections.abc.Mapping
+
+    :param keys: The sequence of keys defining the traversal path.
+    :type keys: ~typing.Iterable[~typing.Hashable]
+
+    :param default: A value to be returned when the last key is not found,
+                    or when *keys* is empty.
+    :type default: ~typing.Any
+
+
+    :return: The value mapped by the last key, or *default*.
+    :rtype: ~typing.Any
+
+    """
+    path = tuple(keys)
+    if not path:
+        return default
+
+    curr = _input
+    for k in path[:-1]:
+        curr = _lookup(curr, k)
+
+    try:
+        return _lookup(curr, path[-1])
+    except (AttributeError, IndexError, KeyError):
+        return default
+
+
 class FilterModule(object):
     """Map functions to Jinja2 filters."""
 
     def filters(self):
         return {
             "get": get,
+            "walk": walk,
         }

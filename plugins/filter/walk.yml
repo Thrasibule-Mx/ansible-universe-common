@@ -1,0 +1,64 @@
+# plugins/filter/walk.yml
+# =======================
+#
+# Copying
+# -------
+#
+# Copyright (c) 2026 universe.common authors and contributors.
+#
+# This file is part of the *universe.common* project.
+#
+# *universe.common* is a free software project. You can redistribute it and/or
+# modify it following the terms of the MIT License.
+#
+# This software project is distributed *as is*, WITHOUT WARRANTY OF ANY KIND;
+# including but not limited to the WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE and NONINFRINGEMENT.
+#
+# You should have received a copy of the MIT License along with
+# *universe.common*. If not, see <http://opensource.org/licenses/MIT>.
+#
+DOCUMENTATION:
+  name: "walk"
+  version_added: "0.4.0"
+  short_description: >-
+    Traverse an object using a sequence of keys and return the item mapped by
+    the last key if found, else *default*.
+  description:
+    - >-
+      Traverse a nested mapping or object using the provided sequence of keys.
+    - >-
+      Return the item mapped by the last key if found, or *default* if the last
+      key does not match or if *keys* is empty.
+    - "If an intermediate key along the path is missing, an error is raised."
+    - >-
+      If no default is provided and the last key does not match, ``None`` is
+      returned.
+  positional: "_input, keys, default"
+  options:
+    _input:
+      description: "The root object or mapping to traverse."
+      type: "dict"
+      required: true
+    keys:
+      description: "The sequence of keys defining the traversal path."
+      type: "list"
+      elements: "raw"
+      required: true
+    default:
+      description: >-
+        A value to be returned when the last key is not found, or when *keys* is empty.
+      type: "raw"
+
+EXAMPLES: |
+  # value => 'deep_value'
+  value: "{{ {'a': {'b': {'c': 'deep_value'}}} | walk(['a', 'b', 'c']) }}"
+  # value => 'fallback'
+  value: "{{ {'a': {'b': {}}} | walk(['a', 'b', 'c'], default='fallback') }}"
+  # value => 'fallback'
+  value: "{{ {'a': 1} | walk([], default='fallback') }}"
+
+RETURN:
+  _value:
+    description: "The value mapped by the last key, or *default*."
+    type: "raw"
