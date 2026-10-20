@@ -20,10 +20,20 @@
 #
 import typing as ty
 
+from contextlib import suppress
 from collections.abc import Mapping
 
 from jinja2.filters import pass_environment
 from jinja2.environment import Environment
+
+
+def _lookup(obj: ty.Any, key: ty.Hashable) -> ty.Any:
+    try:
+        return obj[key]
+    except (KeyError, TypeError):
+        if isinstance(key, str):
+            return getattr(obj, key)
+        raise
 
 
 def get(_input: Mapping, *key: ty.Hashable, default: ty.Any = None) -> ty.Any:
@@ -50,14 +60,8 @@ def get(_input: Mapping, *key: ty.Hashable, default: ty.Any = None) -> ty.Any:
 
     """
     for k in key:
-        try:
-            return _input[k]
-        except KeyError:
-            if isinstance(k, str):
-                try:
-                    return getattr(_input, k)
-                except AttributeError:
-                    continue
+        with suppress(AttributeError, IndexError, KeyError):
+            return _lookup(_input, k)
     return default
 
 
