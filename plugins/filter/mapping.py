@@ -20,10 +20,20 @@
 #
 import typing as ty
 
+from contextlib import suppress
 from collections.abc import Mapping
 
 from jinja2.filters import pass_environment
 from jinja2.environment import Environment
+
+
+def _lookup(obj: ty.Any, key: ty.Hashable) -> ty.Any:
+    try:
+        return obj[key]
+    except (KeyError, TypeError):
+        if isinstance(key, str):
+            return getattr(obj, key)
+        raise
 
 
 def get(_input: Mapping, *key: ty.Hashable, default: ty.Any = None) -> ty.Any:
@@ -50,15 +60,49 @@ def get(_input: Mapping, *key: ty.Hashable, default: ty.Any = None) -> ty.Any:
 
     """
     for k in key:
-        try:
-            return _input[k]
-        except KeyError:
-            if isinstance(k, str):
-                try:
-                    return getattr(_input, k)
-                except AttributeError:
-                    continue
+        with suppress(AttributeError, IndexError, KeyError):
+            return _lookup(_input, k)
     return default
+
+
+def walk(
+    _input: Mapping, keys: ty.Iterable[ty.Hashable], default: ty.Any = None
+) -> ty.Any:
+    """Traverse an object using the provided sequence of keys and return
+    the item mapped by the last key if found, else *default*.
+
+    If an intermediate key along the path is missing, an error is raised.
+    If no default is provided and the last key is not found, ``None`` is
+    returned.
+
+
+    :param _input: The root object or mapping to traverse.
+    :type _input: ~collections.abc.Mapping
+
+    :param keys: The sequence of keys defining the traversal path.
+    :type keys: ~typing.Iterable[~typing.Hashable]
+
+    :param default: A value to be returned when the last key is not found,
+                    or when *keys* is empty.
+    :type default: ~typing.Any
+
+
+    :return: The value mapped by the last key, or *default*.
+    :rtype: ~typing.Any
+
+    """
+    path = tuple(keys)
+    if not path:
+        return default
+
+    curr = _input
+    for k in path[:-1]:
+        curr = _lookup(curr, k)
+
+    try:
+        return _lookup(curr, path[-1])
+    except (AttributeError, IndexError, KeyError):
+        return default
 
 
 class FilterModule(object):
@@ -67,4 +111,5 @@ class FilterModule(object):
     def filters(self):
         return {
             "get": get,
+            "walk": walk,
         }
